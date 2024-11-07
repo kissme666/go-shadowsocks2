@@ -12,7 +12,7 @@ import (
 // Due to this package contains various internal implementation so const named with DefaultBR prefix
 const (
 	DefaultSFCapacity = 1e6
-	// FalsePositiveRate
+	// DefaultSFFPR FalsePositiveRate
 	DefaultSFFPR  = 1e-6
 	DefaultSFSlot = 10
 )

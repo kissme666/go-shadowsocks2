@@ -83,7 +83,9 @@ func PickCipher(name string, key []byte, password string) (Cipher, error) {
 
 type aeadCipher struct{ shadowaead.Cipher }
 
-func (aead *aeadCipher) StreamConn(c net.Conn) net.Conn { return shadowaead.NewConn(c, aead) }
+func (aead *aeadCipher) StreamConn(c net.Conn) net.Conn {
+	return shadowaead.NewConn(c, aead)
+}
 func (aead *aeadCipher) PacketConn(c net.PacketConn) net.PacketConn {
 	return shadowaead.NewPacketConn(c, aead)
 }
@@ -94,6 +96,8 @@ type dummy struct{}
 func (dummy) StreamConn(c net.Conn) net.Conn             { return c }
 func (dummy) PacketConn(c net.PacketConn) net.PacketConn { return c }
 
+// kdf 就是用来补足这个原始密码不满足加密 key 的len的问题
+// todo: 既然有标准的kdf函数还要多此一举?
 // key-derivation function from original Shadowsocks
 func kdf(password string, keyLen int) []byte {
 	var b, prev []byte
@@ -106,4 +110,8 @@ func kdf(password string, keyLen int) []byte {
 		h.Reset()
 	}
 	return b[:keyLen]
+}
+
+func Kdf(password string, keyLen int) []byte {
+	return kdf(password, keyLen)
 }

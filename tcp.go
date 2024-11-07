@@ -16,7 +16,14 @@ import (
 // Create a SOCKS server listening on addr and proxy to server.
 func socksLocal(addr, server string, shadow func(net.Conn) net.Conn) {
 	logf("SOCKS proxy %s <-> %s", addr, server)
-	tcpLocal(addr, server, shadow, func(c net.Conn) (socks.Addr, error) { return socks.Handshake(c) })
+	tcpLocal(
+		addr,   // socks地址
+		server, // ss地址
+		shadow,
+		func(c net.Conn) (socks.Addr, error) {
+			return socks.Handshake(c)
+		},
+	)
 }
 
 // Create a TCP tunnel from addr to target via server.
@@ -77,13 +84,19 @@ func tcpLocal(addr, server string, shadow func(net.Conn) net.Conn, getAddr func(
 			if config.TCPCork {
 				rc = timedCork(rc, 10*time.Millisecond, 1280)
 			}
+			// 这里不是创建链接，这里只是封装了一下链接 其实就是 shadowaead.StreamConn
+			// 封装之后因为封装的对象重写了 reader & writer 方法也就具有了加解密的作用
+			// 也就是 local ---> en/decrypt 的作用
 			rc = shadow(rc)
 
+			// 这里其实就是在ss协议的地址
+			// 其实就是 socks 协议的地址部分直接丢到加密传输过去
 			if _, err = rc.Write(tgt); err != nil {
 				logf("failed to send target address: %v", err)
 				return
 			}
 
+			// replay 的作用就是两个 channel 交换数据 仅此而已 真正的加解密在 stream 重写 reader writer
 			logf("proxy %s <-> %s <-> %s", c.RemoteAddr(), server, tgt)
 			if err = relay(rc, c); err != nil {
 				logf("relay error: %v", err)
